@@ -1,114 +1,247 @@
-# autoresearch
+# NovaX Autoresearch Program
 
-This is an experiment to have the LLM do its own research.
+This autoresearch run is for optimizing NovaX itself, not the original
+nanochat `train.py` experiment. The goal is to make NovaX faster than PyTorch
+where its design gives it an advantage, while preserving broad benchmark
+performance and correctness.
+
+## Objective
+
+Optimize the NovaX library so that GPU benchmarks improve over the current best
+NovaX baseline and, over time, NovaX wins or ties more cases against PyTorch.
+
+The main strengths to exploit are:
+
+- Lazy expression graphs and elementwise kernel fusion.
+- Kernel compile caching.
+- Bucketed GPU memory reuse.
+- Low-overhead CUDA launch paths through PyCUDA.
+- Specialized fused kernels such as matmul + bias + ReLU.
+- Workloads where PyTorch eager mode pays multiple kernel launches or Python
+  dispatch overhead for a chain that NovaX can represent as one graph.
+
+## Files In Scope
+
+Read these before starting:
+
+- `README.md`
+- `docs/concepts.md`
+- `docs/getting-started.md`
+- `novax/core.py`
+- `novax/dispatch.py`
+- `novax/ops/launcher.py`
+- `novax/utils/mempool.py`
+- `novax/ops/gpu/*.py`
+- `tests/*.py`
+- `benchmarks/novax_gpu_benchmark.py`
+
+You may modify files under `novax/` and add focused tests under `tests/`.
+You may update docs only when behavior changes. Do not edit
+`benchmarks/novax_gpu_benchmark.py` during an experiment unless the human
+explicitly asks for benchmark changes.
+
+## Metric
+
+The benchmark runner is:
+
+```bash
+python benchmarks/novax_gpu_benchmark.py --profile research
+```
+
+It prints a human-readable table and summary lines such as:
+
+```text
+benchmarks_ok: 31
+benchmarks_error: 0
+pytorch_wins: 4
+geomean_novax_vs_pytorch: 1.834221
+baseline_comparable: 31
+improved_tests: 2
+regressed_tests: 1
+research_score: 42.713901
+qualified: yes
+```
+
+When `--baseline-json` is supplied, the benchmark compares current NovaX times
+against that baseline. A run qualifies only when:
+
+- At least one comparable benchmark is faster by the improvement threshold.
+- The number of regressions stays within the regression budget.
+- The weighted research score is positive.
+
+Default thresholds in the runner are 3 percent improvement, 5 percent
+regression, and a regression budget of the larger of 2 tests or 10 percent of
+comparable tests. This matches the desired behavior: keep an experiment when it
+finds a real faster timing in one or more tests and does not slow down many
+others.
+
+PyTorch comparison is still important context. Prefer changes that reduce
+`geomean_novax_vs_pytorch`, increase `pytorch_wins`, or turn PyTorch losses into
+ties. The keep/discard decision, however, is based on the baseline comparison so
+that local timing noise and broad regressions are controlled.
 
 ## Setup
 
-To set up a new experiment, work with the user to:
+1. Choose a fresh run tag, for example `may27-novax`.
+2. Create a branch from the current working branch:
 
-1. **Agree on a run tag**: propose a tag based on today's date (e.g. `mar5`). The branch `autoresearch/<tag>` must not already exist — this is a fresh run.
-2. **Create the branch**: `git checkout -b autoresearch/<tag>` from current master.
-3. **Read the in-scope files**: The repo is small. Read these files for full context:
-   - `README.md` — repository context.
-   - `prepare.py` — fixed constants, data prep, tokenizer, dataloader, evaluation. Do not modify.
-   - `train.py` — the file you modify. Model architecture, optimizer, training loop.
-4. **Verify data exists**: Check that `~/.cache/autoresearch/` contains data shards and a tokenizer. If not, tell the human to run `uv run prepare.py`.
-5. **Initialize results.tsv**: Create `results.tsv` with just the header row. The baseline will be recorded after the first run.
-6. **Confirm and go**: Confirm setup looks good.
-
-Once you get confirmation, kick off the experimentation.
-
-## Experimentation
-
-Each experiment runs on a single GPU. The training script runs for a **fixed time budget of 5 minutes** (wall clock training time, excluding startup/compilation). You launch it simply as: `uv run train.py`.
-
-**What you CAN do:**
-- Modify `train.py` — this is the only file you edit. Everything is fair game: model architecture, optimizer, hyperparameters, training loop, batch size, model size, etc.
-
-**What you CANNOT do:**
-- Modify `prepare.py`. It is read-only. It contains the fixed evaluation, data loading, tokenizer, and training constants (time budget, sequence length, etc).
-- Install new packages or add dependencies. You can only use what's already in `pyproject.toml`.
-- Modify the evaluation harness. The `evaluate_bpb` function in `prepare.py` is the ground truth metric.
-
-**The goal is simple: get the lowest val_bpb.** Since the time budget is fixed, you don't need to worry about training time — it's always 5 minutes. Everything is fair game: change the architecture, the optimizer, the hyperparameters, the batch size, the model size. The only constraint is that the code runs without crashing and finishes within the time budget.
-
-**VRAM** is a soft constraint. Some increase is acceptable for meaningful val_bpb gains, but it should not blow up dramatically.
-
-**Simplicity criterion**: All else being equal, simpler is better. A small improvement that adds ugly complexity is not worth it. Conversely, removing something and getting equal or better results is a great outcome — that's a simplification win. When evaluating whether to keep a change, weigh the complexity cost against the improvement magnitude. A 0.001 val_bpb improvement that adds 20 lines of hacky code? Probably not worth it. A 0.001 val_bpb improvement from deleting code? Definitely keep. An improvement of ~0 but much simpler code? Keep.
-
-**The first run**: Your very first run should always be to establish the baseline, so you will run the training script as is.
-
-## Output format
-
-Once the script finishes it prints a summary like this:
-
-```
----
-val_bpb:          0.997900
-training_seconds: 300.1
-total_seconds:    325.9
-peak_vram_mb:     45060.2
-mfu_percent:      39.80
-total_tokens_M:   499.6
-num_steps:        953
-num_params_M:     50.3
-depth:            8
+```bash
+git checkout -b autoresearch/<tag>
 ```
 
-Note that the script is configured to always stop after 5 minutes, so depending on the computing platform of this computer the numbers might look different. You can extract the key metric from the log file:
+3. Verify dependencies in the active Python environment:
 
-```
-grep "^val_bpb:" run.log
-```
-
-## Logging results
-
-When an experiment is done, log it to `results.tsv` (tab-separated, NOT comma-separated — commas break in descriptions).
-
-The TSV has a header row and 5 columns:
-
-```
-commit	val_bpb	memory_gb	status	description
+```bash
+python -m pip install -e ".[gpu]" torch pytest
 ```
 
-1. git commit hash (short, 7 chars)
-2. val_bpb achieved (e.g. 1.234567) — use 0.000000 for crashes
-3. peak memory in GB, round to .1f (e.g. 12.3 — divide peak_vram_mb by 1024) — use 0.0 for crashes
-4. status: `keep`, `discard`, or `crash`
-5. short text description of what this experiment tried
+4. Run the tests:
 
-Example:
-
-```
-commit	val_bpb	memory_gb	status	description
-a1b2c3d	0.997900	44.0	keep	baseline
-b2c3d4e	0.993200	44.2	keep	increase LR to 0.04
-c3d4e5f	1.005000	44.0	discard	switch to GeLU activation
-d4e5f6g	0.000000	0.0	crash	double model width (OOM)
+```bash
+python -m pytest -q
 ```
 
-## The experiment loop
+5. Establish the current-best benchmark baseline:
 
-The experiment runs on a dedicated branch (e.g. `autoresearch/mar5` or `autoresearch/mar5-gpu0`).
+```bash
+python benchmarks/novax_gpu_benchmark.py --profile research --write-json autoresearch/best.json > autoresearch/baseline.log 2>&1
+```
 
-LOOP FOREVER:
+6. Initialize `autoresearch/results.tsv` if it does not exist. Use tab
+separation:
 
-1. Look at the git state: the current branch/commit we're on
-2. Tune `train.py` with an experimental idea by directly hacking the code.
-3. git commit
-4. Run the experiment: `uv run train.py > run.log 2>&1` (redirect everything — do NOT use tee or let output flood your context)
-5. Read out the results: `grep "^val_bpb:\|^peak_vram_mb:" run.log`
-6. If the grep output is empty, the run crashed. Run `tail -n 50 run.log` to read the Python stack trace and attempt a fix. If you can't get things to work after more than a few attempts, give up.
-7. Record the results in the tsv (NOTE: do not commit the results.tsv file, leave it untracked by git)
-8. If val_bpb improved (lower), you "advance" the branch, keeping the git commit
-9. If val_bpb is equal or worse, you git reset back to where you started
+```text
+commit	research_score	qualified	improved	regressed	errors	pytorch_wins	geomean	status	description
+```
 
-The idea is that you are a completely autonomous researcher trying things out. If they work, keep. If they don't, discard. And you're advancing the branch so that you can iterate. If you feel like you're getting stuck in some way, you can rewind but you should probably do this very very sparingly (if ever).
+Do not commit `autoresearch/results.tsv`, `autoresearch/*.log`, or
+`autoresearch/*.json` benchmark artifacts unless the human asks for them.
 
-**Timeout**: Each experiment should take ~5 minutes total (+ a few seconds for startup and eval overhead). If a run exceeds 10 minutes, kill it and treat it as a failure (discard and revert).
+## Experiment Loop
 
-**Crashes**: If a run crashes (OOM, or a bug, or etc.), use your judgment: If it's something dumb and easy to fix (e.g. a typo, a missing import), fix it and re-run. If the idea itself is fundamentally broken, just skip it, log "crash" as the status in the tsv, and move on.
+Repeat indefinitely until interrupted by the human.
 
-**NEVER STOP**: Once the experiment loop has begun (after the initial setup), do NOT pause to ask the human if you should continue. Do NOT ask "should I keep going?" or "is this a good stopping point?". The human might be asleep, or gone from a computer and expects you to continue working *indefinitely* until you are manually stopped. You are autonomous. If you run out of ideas, think harder — read papers referenced in the code, re-read the in-scope files for new angles, try combining previous near-misses, try more radical architectural changes. The loop runs until the human interrupts you, period.
+1. Record the starting commit:
 
-As an example use case, a user might leave you running while they sleep. If each experiment takes you ~5 minutes then you can run approx 12/hour, for a total of about 100 over the duration of the average human sleep. The user then wakes up to experimental results, all completed by you while they slept!
+```bash
+git rev-parse --short HEAD
+```
+
+2. Pick one concrete optimization idea. Keep each experiment small enough that
+the diff can be understood and reverted.
+
+3. Modify the library. Favor optimizations that match NovaX's architecture:
+
+- Extend fusion so unary roots can fuse with binary child graphs.
+- Improve GPU broadcasting for vector bias and scalar operands without falling
+  back to CPU.
+- Avoid unnecessary host transfers, synchronizations, temporary tensors, and
+  repeated CUDA source generation.
+- Reuse buffers safely through `mempool`.
+- Tune reduction kernels and block sizing.
+- Improve matmul or fused matmul+bias+activation kernels.
+- Add capture/replay or graph-level execution only if correctness and fallback
+  behavior are clean.
+
+4. Run correctness tests:
+
+```bash
+python -m pytest -q
+```
+
+If tests fail, fix the experiment or discard it.
+
+5. Commit the experiment before benchmarking:
+
+```bash
+git add novax tests docs
+git commit -m "autoresearch: <short experiment description>"
+```
+
+6. Run the research benchmark against the current best JSON:
+
+```bash
+python benchmarks/novax_gpu_benchmark.py --profile research --baseline-json autoresearch/best.json --write-json autoresearch/last.json > autoresearch/run.log 2>&1
+```
+
+On Windows PowerShell, extract the key lines with:
+
+```powershell
+Select-String -Path autoresearch/run.log -Pattern "^(benchmarks_error|pytorch_wins|geomean_novax_vs_pytorch|improved_tests|regressed_tests|research_score|qualified):"
+```
+
+On bash-like shells, use:
+
+```bash
+grep -E "^(benchmarks_error|pytorch_wins|geomean_novax_vs_pytorch|improved_tests|regressed_tests|research_score|qualified):" autoresearch/run.log
+```
+
+7. Decide:
+
+- Keep if `qualified: yes`, `benchmarks_error` did not increase unexpectedly,
+  and tests passed.
+- For tiny wins near noise level, rerun the same benchmark once. Keep only if
+  the result remains qualified or the improvement is clearly meaningful.
+- Discard if `qualified: no`, there are broad regressions, correctness fails,
+  or the change adds complexity without a durable speedup.
+
+8. Log the result in `autoresearch/results.tsv`.
+
+For a keep, copy the latest benchmark to the new best baseline:
+
+```bash
+copy autoresearch\last.json autoresearch\best.json
+```
+
+or on bash-like shells:
+
+```bash
+cp autoresearch/last.json autoresearch/best.json
+```
+
+For a discard, reset only the experiment commit you just created, after checking
+that there are no unrelated uncommitted user changes:
+
+```bash
+git status --short
+git reset --hard HEAD~1
+```
+
+## Logging
+
+Append one row per experiment to `autoresearch/results.tsv`:
+
+```text
+commit	research_score	qualified	improved	regressed	errors	pytorch_wins	geomean	status	description
+a1b2c3d	0.000000	no	0	0	0	2	2.315441	keep	baseline
+b2c3d4e	42.713901	yes	2	1	0	3	2.102901	keep	fuse unary roots over binary expressions
+c3d4e5f	-18.200000	no	1	4	0	3	2.250012	discard	larger reduction block size
+d4e5f6g	0.000000	no	0	0	3	2	0.000000	crash	experimental cuda graph capture
+```
+
+## Guardrails
+
+- Never optimize by changing the benchmark or hiding work from synchronization.
+- Never sacrifice numerical correctness for timing.
+- Do not install new runtime dependencies unless the human approves.
+- Do not remove CPU fallback behavior while improving GPU performance.
+- Do not keep changes that only help one tiny benchmark while causing broad
+  slowdowns elsewhere.
+- Prefer simple, local improvements over clever rewrites unless the measured
+  speedup is large.
+
+## What To Try First
+
+The current codebase likely has wins available in these areas:
+
+- Make lazy fusion include unary operations at the root, not just binary
+  subgraphs.
+- Add GPU broadcasting for shape-compatible bias vectors and scalars.
+- Ensure common expression chains avoid intermediate kernel launches.
+- Add tests for GPU broadcast and fused graph correctness.
+- Improve memory lifecycle around temporary outputs so repeated benchmark loops
+  reuse buffers instead of allocating fresh buffers.
+- Benchmark matmul tile choices beyond 16x16 if the device supports them.
+
+Keep moving. The loop is autonomous: propose, implement, test, benchmark, keep
+or discard, then continue.
