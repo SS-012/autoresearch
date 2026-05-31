@@ -20,6 +20,8 @@ The focused benchmark scope is:
 - `fusion` cases, where lazy expression graphs collapse multiple PyTorch eager
   launches into one NovaX kernel.
 - `fused_mm` cases, especially matmul + bias + activation epilogues.
+- `training_lane` cases, where a static captured forward/backward/optimizer
+  step can beat PyTorch eager training by keeping the whole step GPU-resident.
 - `inference_capture_*` cases, where static repeated work can replay through
   CUDA graphs.
 
@@ -171,6 +173,10 @@ the diff can be understood and reverted.
   fallback behavior are clean.
 - Consider Triton/CUDA/CUTLASS/cuBLASLt-style fused kernels for stable hot
   shapes rather than broad eager micro-optimizations.
+- For the fast training lane, prefer schedule-level changes that reduce graph
+  nodes, memory traffic, or vendor-library work. Avoid isolated per-thread
+  coarsening or local arithmetic rewrites unless a microprobe and full median
+  gate both show a durable target win.
 
 Avoid unfocused tweaks to isolated eager elementwise, activation, or reduction
 kernels unless they are required by the focused path or remove a severe
