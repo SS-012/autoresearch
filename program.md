@@ -197,6 +197,18 @@ git commit -m "autoresearch: <short experiment description>"
 python benchmarks/novax_gpu_benchmark.py --profile research --baseline-json autoresearch/best.json --write-json autoresearch/last.json > autoresearch/run.log 2>&1
 ```
 
+For serious keep/revert decisions, especially when a target improvement is large
+but unrelated focused rows are noisy, use the 3-run median gate:
+
+```bash
+python benchmarks/novax_gpu_benchmark.py --profile research --suite-repeats 3 --baseline-json autoresearch/best.json --write-json autoresearch/last.json > autoresearch/run.log 2>&1
+```
+
+If the saved `best.json` was produced by a single lucky run, first create a
+stable no-change baseline with the same median gate, then compare the candidate
+against that stable artifact. Do not lower the bar silently; record which
+baseline was used in `results.tsv`.
+
 On Windows PowerShell, extract the key lines with:
 
 ```powershell
@@ -215,6 +227,8 @@ grep -E "^(benchmarks_error|focus_cases|pytorch_wins|geomean_novax_vs_pytorch|ov
   tests passed, and any overall-suite regressions are understood.
 - For tiny wins near noise level, rerun the same benchmark once. Keep only if
   the result remains qualified or the improvement is clearly meaningful.
+- For strong target wins with unrelated regressions, prefer the 3-run median
+  gate over ad hoc single-run tiebreakers.
 - Discard if `qualified: no`, focused regressions exceed the budget,
   correctness fails, or the change adds complexity without a durable focused
   speedup.
