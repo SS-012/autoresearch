@@ -1,14 +1,27 @@
 # NovaX Autoresearch Program
 
 This autoresearch run is for optimizing NovaX itself, not the original
-nanochat `train.py` experiment. The goal is to make NovaX faster than PyTorch
-where its design gives it an advantage, while preserving broad benchmark
-performance and correctness.
+nanochat `train.py` experiment. The goal is to make NovaX's differentiated GPU
+execution path blazingly fast: lazy graph fusion, static-shape graph
+capture/replay, square/specialized matmul, and fused matmul epilogues. Broad
+benchmark coverage still runs as a guardrail, but the primary score is now the
+focused edge where NovaX can structurally beat PyTorch.
 
 ## Objective
 
-Optimize the NovaX library so that GPU benchmarks improve over the current best
-NovaX baseline and, over time, NovaX wins or ties more cases against PyTorch.
+Optimize the NovaX library so that the focused differentiated-path GPU
+benchmarks improve over the current best NovaX baseline and, over time, NovaX's
+edge cases become dramatically faster than PyTorch.
+
+The focused benchmark scope is:
+
+- `matmul` cases, especially small/medium square shapes where NovaX can avoid
+  excess eager overhead or use a narrow fast path.
+- `fusion` cases, where lazy expression graphs collapse multiple PyTorch eager
+  launches into one NovaX kernel.
+- `fused_mm` cases, especially matmul + bias + activation epilogues.
+- `inference_capture_*` cases, where static repeated work can replay through
+  CUDA graphs.
 
 The main strengths to exploit are:
 
@@ -17,8 +30,14 @@ The main strengths to exploit are:
 - Bucketed GPU memory reuse.
 - Low-overhead CUDA launch paths through PyCUDA.
 - Specialized fused kernels such as matmul + bias + ReLU.
+- CUDA graph capture/replay for repeated static workloads.
 - Workloads where PyTorch eager mode pays multiple kernel launches or Python
   dispatch overhead for a chain that NovaX can represent as one graph.
+
+Do not spend autoresearch budget trying to beat PyTorch on every isolated eager
+elementwise, activation, bandwidth, or reduction case. Those cases remain useful
+for catching severe regressions, but they are not the primary objective unless a
+change also strengthens the focused differentiated path.
 
 ## Files In Scope
 
@@ -48,37 +67,44 @@ The benchmark runner is:
 python benchmarks/novax_gpu_benchmark.py --profile research
 ```
 
-It prints a human-readable table and summary lines such as:
+It prints a human-readable table and focused summary lines such as:
 
 ```text
 benchmarks_ok: 31
 benchmarks_error: 0
-pytorch_wins: 4
-geomean_novax_vs_pytorch: 1.834221
-baseline_comparable: 31
+pytorch_wins: 7
+geomean_novax_vs_pytorch: 0.681234
+overall_geomean_novax_vs_pytorch: 1.046350
+baseline_scope: differentiated
+baseline_comparable: 11
 improved_tests: 2
 regressed_tests: 1
+overall_regressed_tests: 4
 research_score: 42.713901
 qualified: yes
 ```
 
 When `--baseline-json` is supplied, the benchmark compares current NovaX times
-against that baseline. A run qualifies only when:
+against that baseline. The primary comparison and `research_score` now use only
+the differentiated-path cases listed above. A run qualifies only when:
 
-- At least one comparable benchmark is faster by the improvement threshold.
-- The number of regressions stays within the regression budget.
-- The weighted research score is positive.
+- At least one comparable focused benchmark is faster by the improvement
+  threshold.
+- The number of focused regressions stays within the regression budget.
+- The focused weighted research score is positive.
 
 Default thresholds in the runner are 3 percent improvement, 5 percent
 regression, and a regression budget of the larger of 2 tests or 10 percent of
-comparable tests. This matches the desired behavior: keep an experiment when it
-finds a real faster timing in one or more tests and does not slow down many
-others.
+focused comparable tests. This matches the desired behavior: keep an experiment
+when it makes NovaX's edge faster without degrading many focused edge cases.
 
-PyTorch comparison is still important context. Prefer changes that reduce
-`geomean_novax_vs_pytorch`, increase `pytorch_wins`, or turn PyTorch losses into
-ties. The keep/discard decision, however, is based on the baseline comparison so
-that local timing noise and broad regressions are controlled.
+PyTorch comparison is still important context. In the benchmark output,
+`geomean_novax_vs_pytorch`, `pytorch_wins`, `pytorch_ties`, and `pytorch_losses`
+now describe the focused differentiated path. The full-suite comparison is
+reported separately as `overall_geomean_novax_vs_pytorch`,
+`overall_pytorch_wins`, `overall_pytorch_ties`, and `overall_pytorch_losses`.
+Use the overall metrics as guardrail context, not as the primary optimization
+target.
 
 ## Setup
 
@@ -114,6 +140,8 @@ separation:
 commit	research_score	qualified	improved	regressed	errors	pytorch_wins	geomean	status	description
 ```
 
+The `pytorch_wins` and `geomean` columns are focused differentiated-path values.
+
 Do not commit `autoresearch/results.tsv`, `autoresearch/*.log`, or
 `autoresearch/*.json` benchmark artifacts unless the human asks for them.
 
@@ -130,7 +158,7 @@ git rev-parse --short HEAD
 2. Pick one concrete optimization idea. Keep each experiment small enough that
 the diff can be understood and reverted.
 
-3. Modify the library. Favor optimizations that match NovaX's architecture:
+3. Modify the library. Favor optimizations that strengthen NovaX's focused edge:
 
 - Extend fusion so unary roots can fuse with binary child graphs.
 - Improve GPU broadcasting for vector bias and scalar operands without falling
@@ -138,10 +166,15 @@ the diff can be understood and reverted.
 - Avoid unnecessary host transfers, synchronizations, temporary tensors, and
   repeated CUDA source generation.
 - Reuse buffers safely through `mempool`.
-- Tune reduction kernels and block sizing.
-- Improve matmul or fused matmul+bias+activation kernels.
-- Add capture/replay or graph-level execution only if correctness and fallback
-  behavior are clean.
+- Improve square/specialized matmul or fused matmul+bias+activation kernels.
+- Add or improve capture/replay and graph-level execution when correctness and
+  fallback behavior are clean.
+- Consider Triton/CUDA/CUTLASS/cuBLASLt-style fused kernels for stable hot
+  shapes rather than broad eager micro-optimizations.
+
+Avoid unfocused tweaks to isolated eager elementwise, activation, or reduction
+kernels unless they are required by the focused path or remove a severe
+guardrail regression.
 
 4. Run correctness tests:
 
@@ -167,23 +200,27 @@ python benchmarks/novax_gpu_benchmark.py --profile research --baseline-json auto
 On Windows PowerShell, extract the key lines with:
 
 ```powershell
-Select-String -Path autoresearch/run.log -Pattern "^(benchmarks_error|pytorch_wins|geomean_novax_vs_pytorch|improved_tests|regressed_tests|research_score|qualified):"
+Select-String -Path autoresearch/run.log -Pattern "^(benchmarks_error|focus_cases|pytorch_wins|geomean_novax_vs_pytorch|overall_geomean_novax_vs_pytorch|baseline_scope|improved_tests|regressed_tests|overall_regressed_tests|research_score|qualified):"
 ```
 
 On bash-like shells, use:
 
 ```bash
-grep -E "^(benchmarks_error|pytorch_wins|geomean_novax_vs_pytorch|improved_tests|regressed_tests|research_score|qualified):" autoresearch/run.log
+grep -E "^(benchmarks_error|focus_cases|pytorch_wins|geomean_novax_vs_pytorch|overall_geomean_novax_vs_pytorch|baseline_scope|improved_tests|regressed_tests|overall_regressed_tests|research_score|qualified):" autoresearch/run.log
 ```
 
 7. Decide:
 
 - Keep if `qualified: yes`, `benchmarks_error` did not increase unexpectedly,
-  and tests passed.
+  tests passed, and any overall-suite regressions are understood.
 - For tiny wins near noise level, rerun the same benchmark once. Keep only if
   the result remains qualified or the improvement is clearly meaningful.
-- Discard if `qualified: no`, there are broad regressions, correctness fails,
-  or the change adds complexity without a durable speedup.
+- Discard if `qualified: no`, focused regressions exceed the budget,
+  correctness fails, or the change adds complexity without a durable focused
+  speedup.
+- If a change qualifies on the focused metric but causes large non-focus
+  regressions, prefer narrowing or gating the change instead of discarding the
+  focused idea outright.
 
 8. Log the result in `autoresearch/results.tsv`.
 
