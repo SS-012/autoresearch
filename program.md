@@ -221,6 +221,10 @@ the diff can be understood and reverted.
   and qualified once, but confirmation failed with focused regressions and
   broad overall drift. Treat output-backward tile shape as a generated
   whole-step planner parameter, not another one-off edit.
+- Do not retry per-kernel `-maxrregcount` compiler-option tuning for the exact
+  output-backward/ReLU kernel as a standalone edit. A local family probe was
+  numerically stable, but the best cap, `-maxrregcount=64`, only improved the
+  component from `0.017632ms` to `0.017536ms` (`1.005474x`).
 - The kept captured output-shape `w2/b2` update specialization is useful
   cleanup, but it did not create a new headline train-step jump. Do not spend
   more standalone effort on tiny optimizer-tail kernels unless they are part of
