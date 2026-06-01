@@ -407,6 +407,11 @@ the diff can be understood and reverted.
   fusion kernel as a standalone edit. The local probe was accurate but below
   threshold: current median `0.013584ms`, candidate median `0.013328ms`, or
   only `1.019208x`.
+- Do not retry per-kernel `-maxrregcount` compiler-option tuning for the exact
+  `float2` fusion-chain kernels as a standalone edit. A local option-family
+  probe found no chain3 improvement and made every chain5 candidate slower:
+  chain3 default/reg32/reg48 all measured `0.013248ms`, while chain5 default
+  was `0.013152ms` and the best capped variant was `0.013184ms`.
 - Nsight Compute is installed, but local `ncu` profiling currently fails with
   `ERR_NVGPUCTRPERM`, so do not base decisions on unavailable hardware-counter
   evidence. Use CUDA-event component probes and the full focused gate unless
