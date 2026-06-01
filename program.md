@@ -205,6 +205,11 @@ the diff can be understood and reverted.
   input-gradient/update kernel. The `32x8` and `64x4` probe improved component
   CUDA-event timing, but the `32x8` candidate failed confirmation and did not
   preserve a durable train-row win.
+- Do not retry standalone block-geometry retuning of the current exact
+  output-backward/ReLU kernel. The `8x32` candidate improved component timing
+  and qualified once, but confirmation failed with focused regressions and
+  broad overall drift. Treat output-backward tile shape as a generated
+  whole-step planner parameter, not another one-off edit.
 - The kept captured output-shape `w2/b2` update specialization is useful
   cleanup, but it did not create a new headline train-step jump. Do not spend
   more standalone effort on tiny optimizer-tail kernels unless they are part of
