@@ -201,6 +201,10 @@ the diff can be understood and reverted.
   production with the `w1/b1` update qualified and moved the train row to about
   `0.0322ms`. Future train-step plans should fuse update work where gradients
   are produced while still returning API-visible gradient buffers.
+- The kept captured output-shape `w2/b2` update specialization is useful
+  cleanup, but it did not create a new headline train-step jump. Do not spend
+  more standalone effort on tiny optimizer-tail kernels unless they are part of
+  a larger generated/static train-step plan.
 - Do not retry exact by-parameter variants of the current four-parameter SGD
   update as standalone launchers. The isolated update improved locally, but the
   captured training row did not improve and the focused gate regressed badly.
