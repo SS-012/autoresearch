@@ -254,6 +254,14 @@ the diff can be understood and reverted.
 - Do not retry simple MSE inverse-scale or block-size changes as standalone
   fast-training-lane edits; isolated probes did not cleanly beat the current
   512-thread atomic-loss kernel.
+- Do not retry single-thread direct scalar-loss computation inside the exact
+  output-backward/ReLU training kernel as a replacement for the current memset
+  plus per-column atomic loss accumulation. A local probe was correct but much
+  slower, about `0.092ms` versus `0.0215ms`.
+- Nsight Compute is installed, but local `ncu` profiling currently fails with
+  `ERR_NVGPUCTRPERM`, so do not base decisions on unavailable hardware-counter
+  evidence. Use CUDA-event component probes and the full focused gate unless
+  counter permissions are changed.
 
 Avoid unfocused tweaks to isolated eager elementwise, activation, or reduction
 kernels unless they are required by the focused path or remove a severe
