@@ -188,6 +188,9 @@ the diff can be understood and reverted.
   useful for the exact same-shape fusion-chain launchers, but the earlier
   `float4` route failed the full focused gate. Any future vector-width change
   needs a direct event probe and a 3-run median benchmark gate.
+- Do not retry alias-hint-only edits for those exact `float2` fusion-chain
+  kernels as standalone changes. Adding `__restrict__` looked slightly faster
+  in an event probe but failed the full focused gate with four regressions.
 
 Avoid unfocused tweaks to isolated eager elementwise, activation, or reduction
 kernels unless they are required by the focused path or remove a severe
