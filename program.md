@@ -270,6 +270,10 @@ the diff can be understood and reverted.
   full gate improved `fused_mm_linear_128_256_128`, but the 3-repeat focused
   gate still failed with three focused regressions and `fusion_chain3` at
   `1.154891x` baseline time.
+- Do not retry cache-first `_get_stream()` lookup as a standalone
+  host-overhead edit. An alternating local probe was below threshold on focused
+  rows: chain3 `1.003x`, chain5 `1.005x`, fused-mm128 `1.023x`, and matmul256
+  flat.
 - Build on the kept `2cc6e24` result only with care: `float2` vectorization is
   useful for the exact same-shape fusion-chain launchers, but the earlier
   `float4` route failed the full focused gate. Any future vector-width change
