@@ -1,9 +1,10 @@
 # NovaX Autoresearch Program
 
 This autoresearch run is for NovaX itself, not the original nanochat
-`train.py` experiment. The immediate goal has shifted from finding another
-micro-optimization to hardening NovaX's narrow static-shape training lane into a
-credible, reproducible ML systems benchmark.
+`train.py` experiment. The current phase is RL-agent training optimization:
+NovaX already wins most value-network, discrete policy/Q, and agent-router
+static MLP shapes, so the next work is to investigate and fix the remaining
+large-router losses without regressing the winning RL/agent-shaped zone.
 
 The current lane is deliberately narrow:
 
@@ -14,41 +15,60 @@ The current lane is deliberately narrow:
 - fused SGD update,
 - full static train step.
 
-Do not widen the claim until this lane is bulletproof. Speedups are only useful
-when they survive correctness checks, stronger PyTorch baselines, and shape
-variation.
+Do not widen the claim until this lane is bulletproof for RL-agent training.
+Speedups are only useful when they survive correctness checks, the PyTorch
+CUDA Graph baseline, the wider PyTorch ladder, and the RL guardrail sweep.
 
 ## Objective
 
-Harden and then optimize NovaX's static MLP training lane. The primary evidence
-artifact is now `benchmarks/training_lane_benchmark.py` plus `BENCHMARKS.md`.
+Optimize NovaX for static-shape RL-agent training. The current evidence says
+NovaX is strong in the intended zone: the RL sweep measured 497 wins out of 528
+shapes versus PyTorch CUDA Graph replay, with value-network and discrete
+policy/Q cases especially strong. The remaining risk is the large-router corner:
 
-Phase order:
+- batches around 256 and now also 128/512,
+- input dimensions 512/1024/2048,
+- hidden dimensions 128/256/512,
+- output dimensions 16/32/64/128.
 
-1. Lock correctness against PyTorch for the same inputs, targets, weights,
-   dtype, loss, gradients, and SGD updates. Test 1, 10, 100, and 1000 steps and
-   report max absolute and relative differences for loss, gradients, and final
-   weights.
-2. Build a fair PyTorch baseline ladder: eager, eager with foreach/optimized
-   SGD when available, `torch.compile`, `torch.compile(mode="reduce-overhead")`,
-   and PyTorch CUDA Graph full-step replay when feasible.
-3. Improve benchmark rigor. Every run should log hardware, CUDA version,
-   PyTorch version, NovaX commit, batch size, hidden size, dtype, warmup steps,
-   measured steps, mean/median/p95 step time, samples/sec, peak VRAM when
-   available, and launch count when available.
-4. Sweep static shapes for the same model:
-   batches `32, 128, 512, 2048`; input dims `64, 256, 1024`; hidden dims
-   `128, 512, 2048`; output dims `1, 10, 100`; also keep the canonical
-   optimized shape `(128, 256, 128, 64)` visible.
-5. Keep regression tracking stable: focused geomean, per-case regressions, and
-   no accepted speed wins that break correctness or worsen too many focused
-   cases.
-6. Keep `BENCHMARKS.md` current with the exact claim, benchmark scope,
-   environment, correctness results, PyTorch ladder, NovaX results, known
-   limitations, and reproduction command.
-7. Only after this lane is defensible, widen in this order: deeper MLPs,
-   cross-entropy, SGD momentum, AdamW, transformer feedforward block, small real
-   model benchmark.
+The primary evidence artifacts for this phase are:
+
+- `benchmarks/training_lane_large_router_analysis.py`
+- `benchmarks/training_lane_rl_cuda_graph_benchmark.py`
+- `BENCHMARKS.md`
+
+Phase order for the next autoresearch loop:
+
+1. Isolate the large-router loss subset:
+   batches `128, 256, 512`; input dims `512, 1024, 2048`; hidden dims
+   `128, 256, 512`; output dims `16, 32, 64, 128`.
+2. Compare every shape against `novax_captured`, `pytorch_cuda_graph`,
+   `pytorch_eager`, `torch_compile_default`, and
+   `torch_compile_reduce_overhead`.
+3. Record mean, median, p95, standard deviation, setup time, warmup time, peak
+   VRAM, launch count when known, correctness, and CUDA Graph / NovaX speedup.
+4. For every NovaX loss, decompose the NovaX train step into the current fused
+   or observable components: first fused matmul+bias+ReLU, second fused
+   matmul+bias, MSE/output-gradient, second-layer backward and bias reduction,
+   hidden backward matmul, ReLU backward, first-layer backward and bias
+   reduction, SGD update, temporary allocation/memory movement, and
+   replay/launch overhead.
+5. Classify every loss with one primary cause: GEMM dominance, tiling issue,
+   reduction issue, memory bandwidth issue, fusion issue, occupancy issue,
+   measurement artifact, or correctness-related fallback.
+6. For the worst five losing shapes, collect or preserve profiler evidence:
+   kernel count, kernel names, per-kernel timing, achieved occupancy, memory
+   throughput, SM utilization, tensor core usage, PyTorch cuBLAS calls, and
+   NovaX custom kernel timings. If Nsight Compute is blocked by
+   `ERR_NVGPUCTRPERM`, keep the profiler command and the error in the result.
+7. Use the full RL sweep as the guardrail. Reject any optimization that helps
+   large-router losses but damages the value/discrete/router winning zone.
+8. Keep `papers/` updated with current papers and vendor references that shape
+   the next hypothesis.
+
+Only after this lane is defensible for RL-agent training should the library
+widen in this order: deeper MLPs, cross-entropy, SGD momentum, AdamW,
+transformer feedforward block, then a small real model benchmark.
 
 The older focused benchmark scope still matters as a guardrail:
 
@@ -92,13 +112,55 @@ Read these before starting:
 - `tests/*.py`
 - `benchmarks/novax_gpu_benchmark.py`
 - `benchmarks/training_lane_benchmark.py`
+- `benchmarks/training_lane_cuda_graph_stress.py`
+- `benchmarks/training_lane_rl_cuda_graph_benchmark.py`
+- `benchmarks/training_lane_large_router_analysis.py`
 - `BENCHMARKS.md`
+- `docs/autoresearch-findings.md`
+- `papers/*.md`
 
 You may modify files under `novax/` and add focused tests under `tests/`.
 You may update docs when behavior or benchmark claims change. The human has
 explicitly authorized benchmark changes for the training-lane hardening work.
 
 ## Metric
+
+The current phase metric is the large-router benchmark plus the RL guardrail.
+Run the focused loss analysis before choosing an optimization:
+
+```bash
+python benchmarks/training_lane_large_router_analysis.py --repeats 31 --measured 3 --warmup 5 --component-repeats 31 --component-warmup 5 --profile-worst 5 --ncu-mode command --write-csv benchmarks/training_lane_large_router_analysis.csv --write-raw-csv benchmarks/training_lane_large_router_analysis_raw.csv --write-loss-csv benchmarks/training_lane_large_router_losses.csv --write-component-csv benchmarks/training_lane_large_router_components.csv --write-json benchmarks/training_lane_large_router_analysis.json --update-benchmarks BENCHMARKS.md
+```
+
+If profiler access is available, rerun the worst-shape profiling step with
+`--ncu-mode run`. If Nsight Compute reports `ERR_NVGPUCTRPERM`, do not invent
+counter values; preserve the command/error and proceed with CUDA-event component
+timings.
+
+The primary optimization score for this phase is:
+
+- improve the losing large-router rows versus PyTorch CUDA Graph replay,
+- improve or preserve the large-router geomean,
+- keep correctness healthy for 1, 10, 100, and 1000 steps,
+- do not damage the existing RL/agent advantage zone.
+
+Use the full RL sweep as the guardrail:
+
+```bash
+python benchmarks/training_lane_rl_cuda_graph_benchmark.py --repeats 31 --measured 3 --warmup 5 --write-csv benchmarks/training_lane_rl_cuda_graph.csv --write-raw-csv benchmarks/training_lane_rl_cuda_graph_raw.csv --write-json benchmarks/training_lane_rl_cuda_graph.json --update-benchmarks BENCHMARKS.md
+```
+
+Known guardrail baseline from the current repo:
+
+- overall RL sweep: NovaX wins `497/528`, CUDA Graph / NovaX geomean `1.756x`;
+- value networks: `48/48` NovaX wins, geomean `1.843x`;
+- discrete policy/Q: `236/240` NovaX wins, geomean `1.990x`;
+- agent routers: `213/240` NovaX wins, geomean `1.535x`.
+
+Reject an experiment if it improves a large-router loss by making the value and
+small/medium router cases slower. Do not force one kernel strategy to serve all
+shapes; prefer shape-keyed routing when the data says the winning regimes are
+different.
 
 The legacy autoresearch runner is still:
 
@@ -188,7 +250,13 @@ python -m pytest -q
 python benchmarks/novax_gpu_benchmark.py --profile research --write-json autoresearch/best.json > autoresearch/baseline.log 2>&1
 ```
 
-6. Initialize `autoresearch/results.tsv` if it does not exist. Use tab
+6. Establish the RL large-router baseline before the next loop:
+
+```bash
+python benchmarks/training_lane_large_router_analysis.py --repeats 31 --measured 3 --warmup 5 --component-repeats 31 --component-warmup 5 --profile-worst 5 --ncu-mode command --write-json benchmarks/training_lane_large_router_analysis.json
+```
+
+7. Initialize `autoresearch/results.tsv` if it does not exist. Use tab
 separation:
 
 ```text
@@ -215,6 +283,19 @@ the diff can be understood and reverted.
 
 3. Modify the library. Favor optimizations that strengthen NovaX's focused edge:
 
+- For the current phase, start from the large-router loss table. Optimize the
+  component that actually caused the loss instead of guessing from the shape
+  alone.
+- Prefer shape-keyed dispatch for the router boundary: keep NovaX's custom
+  fused kernels on the small RL/agent shapes where they win, and route large
+  GEMM/backward regions to cuBLASLt, CUTLASS-style, or Triton templates when
+  custom kernels are losing.
+- For large-router losses, prioritize transpose/backward GEMMs, reduction
+  fusion/splitting, and memory traffic before host-wrapper cleanup. The
+  PyTorch CUDA Graph baseline already removes most Python launch overhead.
+- Preserve `benchmarks/training_lane_rl_cuda_graph_benchmark.py` as the
+  no-regression guardrail. A P0 large-router fix is not acceptable if the RL
+  geomean or current value/discrete/router winning cases collapse.
 - Extend fusion so unary roots can fuse with binary child graphs.
 - Improve GPU broadcasting for vector bias and scalar operands without falling
   back to CPU.
