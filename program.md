@@ -264,6 +264,10 @@ the diff can be understood and reverted.
   no-change-control focused comparisons with three regressions. Vectorizing
   four adjacent output-gradient columns made the train row itself regress by
   `1.165x`.
+- Do not retry a 2x2 register-tiled exact64 matmul block as a standalone
+  replacement for the kept exact64 kernel. A CUDA-event probe looked mildly
+  faster, but the full focused gate regressed `matmul_64x64_x_64x64` to
+  `1.237705x` saved-baseline time.
 - Nsight Compute is installed, but local `ncu` profiling currently fails with
   `ERR_NVGPUCTRPERM`, so do not base decisions on unavailable hardware-counter
   evidence. Use CUDA-event component probes and the full focused gate unless
