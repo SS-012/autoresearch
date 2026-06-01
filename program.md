@@ -601,6 +601,11 @@ The current codebase likely has wins available in these areas:
 - For the focused fusion-chain kernels, explore only narrow, shape-guarded
   follow-ups that preserve the current `float2` fast path and do not broaden
   dispatch matching.
+- For the captured `128,256,128,64` training lane, target the exact
+  output-backward/ReLU region only with a generated or shape-keyed schedule
+  family. A stream-correct component profile measured it as the fattest current
+  step piece at `0.021152ms`; the smaller forward, input-update, and update-tail
+  kernels are now too close to the graph/kernel floor for standalone tweaks.
 
 Keep moving. The loop is autonomous: propose, implement, test, benchmark, keep
 or discard, then continue.
