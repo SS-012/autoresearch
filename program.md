@@ -366,6 +366,14 @@ the diff can be understood and reverted.
   inside the exact captured input-gradient/update kernel as standalone
   memory-traffic cleanup. Fixed-GPU hot-path probes were bitwise-identical but
   slower: A-side broadcast `0.934x` and B-side broadcast `0.887x`.
+- Do not retry direct `CapturedLinearReluLinearMSEStep.step = graph.replay`
+  binding as a standalone host-overhead edit. The local synchronized
+  benchmark-shaped probe was exactly flat at `0.031500ms` for both current and
+  bound methods.
+- Do not retry row-0 `d_b1` reduction folding inside the exact captured
+  input-gradient/update kernel as a standalone memory-traffic cleanup. The
+  candidate was bitwise identical, but slower in fixed-GPU timing:
+  `0.010179ms` versus `0.009609ms` current.
 - Do not retry a 2x2 register-tiled exact64 matmul block as a standalone
   replacement for the kept exact64 kernel. A CUDA-event probe looked mildly
   faster, but the full focused gate regressed `matmul_64x64_x_64x64` to
