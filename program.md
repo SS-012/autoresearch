@@ -214,6 +214,9 @@ the diff can be understood and reverted.
   cleanup, but it did not create a new headline train-step jump. Do not spend
   more standalone effort on tiny optimizer-tail kernels unless they are part of
   a larger generated/static train-step plan.
+- Do not retry launch-grid shaving on that exact `w2/b2` update tail. The
+  single-grid variant improved local event timing, but the full focused gate
+  produced zero focused improvements and two focused regressions.
 - Do not retry exact by-parameter variants of the current four-parameter SGD
   update as standalone launchers. The isolated update improved locally, but the
   captured training row did not improve and the focused gate regressed badly.
