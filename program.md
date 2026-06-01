@@ -362,6 +362,10 @@ the diff can be understood and reverted.
   standalone edit. The combined local component probe was correct and only
   `1.034x` faster, and the full focused gate failed with five focused
   regressions led by `fusion_chain3`.
+- Do not retry warp-shuffle broadcasting of `x[m,row]` or `d_z1[m,col]` loads
+  inside the exact captured input-gradient/update kernel as standalone
+  memory-traffic cleanup. Fixed-GPU hot-path probes were bitwise-identical but
+  slower: A-side broadcast `0.934x` and B-side broadcast `0.887x`.
 - Do not retry a 2x2 register-tiled exact64 matmul block as a standalone
   replacement for the kept exact64 kernel. A CUDA-event probe looked mildly
   faster, but the full focused gate regressed `matmul_64x64_x_64x64` to
