@@ -229,6 +229,12 @@ the diff can be understood and reverted.
   matmul+bias+ReLU specialization, even with bounds and nonzero bias support.
   It improved `fused_mm_linear_128_256_128`, but the focused gate failed with
   four focused regressions.
+- Do not retry zero-bias `128x256x128` fused-mm by splitting the work into
+  cuBLAS SGEMM plus a separate ReLU launch. The local event probe looked about
+  `1.70x` faster, but the full focused gate rejected it with
+  `fused_mm_naive_128_256_128` at `1.449102x` baseline time and four focused
+  regressions. Future work needs a true fused epilogue or a guardrail-aware
+  kernel family, not this two-launch route.
 - Do not retry exact by-parameter variants of the current four-parameter SGD
   update as standalone launchers. The isolated update improved locally, but the
   captured training row did not improve and the focused gate regressed badly.
