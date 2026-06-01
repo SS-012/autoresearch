@@ -197,6 +197,10 @@ the diff can be understood and reverted.
   focused regressions. Revisit only as part of a generated whole-step planner
   or a training-isolated score that can separate true train-lane gains from
   coupled-suite noise.
+- Do not retry `step_many` gradient-binding skips or identity checks as
+  standalone host-overhead edits. Local probes on the captured 8-step graph
+  were at or below the timing-noise floor: no-bind was flat in one ordering
+  (`1.0005x`) and identity-check binding reversed from `1.002x` to `0.968x`.
 - Treat exact output-backward/ReLU fusion as proven locally but not keepable as
   a standalone launcher under the current coupled focused gate. Revisit it only
   as part of a shape-keyed whole-step workspace, generated train-step plan, or
@@ -403,6 +407,11 @@ the diff can be understood and reverted.
   binding as a standalone host-overhead edit. The local synchronized
   benchmark-shaped probe was exactly flat at `0.031500ms` for both current and
   bound methods.
+- Do not retry graph-capture buffer recycling as a standalone static-memory
+  plan edit. Experiment `58581a1` passed correctness, but the 3-repeat gate had
+  zero focused improvements, five focused regressions, and
+  `fused_mm_linear_256_512_256` at `1.145349x` baseline time; it was reverted
+  in `a156b64`.
 - Do not retry row-0 `d_b1` reduction folding inside the exact captured
   input-gradient/update kernel as a standalone memory-traffic cleanup. The
   candidate was bitwise identical, but slower in fixed-GPU timing:
@@ -477,10 +486,10 @@ against that stable artifact. Do not lower the bar silently; record which
 baseline was used in `results.tsv`.
 
 Current local best baseline was refreshed on June 1 from a no-change 3-repeat
-median gate (`last_nochange_continuation_jun01.json`): 36 ok, 0 errors, all 12
-focused rows faster than PyTorch, focused geomean `0.435760`, score
-`50.005335`, one focused improvement, zero focused regressions. Treat this as a
-same-code control snapshot, not a source improvement.
+median gate (`last_nochange_resume_obj2_jun01.json`): 37 ok, 0 errors, all 13
+focused rows faster than PyTorch, focused geomean `0.374389`, score
+`603.669765`, six focused improvements, zero focused regressions. Treat this as
+a same-code control snapshot, not a source improvement.
 
 On Windows PowerShell, extract the key lines with:
 
