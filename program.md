@@ -239,6 +239,10 @@ the diff can be understood and reverted.
   `fused_mm_naive_128_256_128` at `1.449102x` baseline time and four focused
   regressions. Future work needs a true fused epilogue or a guardrail-aware
   kernel family, not this two-launch route.
+- Do not retry a one-warp-per-16x16 TF32 WMMA kernel for the exact
+  zero-bias `128x256x128` fused-mm row as a standalone edit. The first probe
+  looked weakly positive, but an alternating-order repeat was slower than the
+  current SIMT tile and introduced TF32-level numerical drift.
 - Do not retry exact by-parameter variants of the current four-parameter SGD
   update as standalone launchers. The isolated update improved locally, but the
   captured training row did not improve and the focused gate regressed badly.
