@@ -184,13 +184,12 @@ the diff can be understood and reverted.
   nodes, memory traffic, or vendor-library work. Avoid isolated per-thread
   coarsening or local arithmetic rewrites unless a microprobe and full median
   gate both show a durable target win.
-- Positive future path: evaluate an explicit multi-step captured training API
-  and benchmark row. A local probe found an 8-step captured graph at
-  `0.029680ms` per step with exact parameter agreement versus eight
-  single-step replays (`2.221563x` faster than the local single-step graph).
-  Add this as a deliberate new multi-step row with a PyTorch multi-step
-  comparator and a regenerated baseline; do not silently reuse the existing
-  single-step `training_lane_mlp_mse_step_128_256_128_64` case ID.
+- Keep and optimize the explicit multi-step captured training lane. It adds
+  `CapturedLinearReluLinearMSEStep.step_many(steps)` plus the
+  `training_lane_mlp_mse_step_many8_128_256_128_64` benchmark row. The final
+  gate measured `0.025537ms` per NovaX step versus `0.445581ms` for PyTorch,
+  a `0.057x` ratio. The row has been merged into the local ignored
+  `autoresearch/best.json` baseline while preserving older saved-best rows.
 - Treat exact output-backward/ReLU fusion as proven locally but not keepable as
   a standalone launcher under the current coupled focused gate. Revisit it only
   as part of a shape-keyed whole-step workspace, generated train-step plan, or
