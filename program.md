@@ -177,6 +177,9 @@ the diff can be understood and reverted.
   Python-overhead edit. It passed correctness but did not improve the intended
   exact64 row, and the 3-run focused gate failed with `inference_capture` as
   the worst regression.
+- Do not retry caller-side shape gating for the current fused-mm fast-path
+  helper dispatch as a standalone wrapper optimization. It qualified once, but
+  confirmation failed and the `fused_mm_128` target signal did not hold.
 - For the fast training lane, prefer schedule-level changes that reduce graph
   nodes, memory traffic, or vendor-library work. Avoid isolated per-thread
   coarsening or local arithmetic rewrites unless a microprobe and full median
