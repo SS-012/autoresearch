@@ -221,6 +221,10 @@ the diff can be understood and reverted.
   `w2/b2` update kernels as a standalone schedule edit. A local replay probe
   improved, but confirmation failed with zero focused improvements and four
   focused regressions.
+- Do not retry fusing the exact `w2/b2` update tail into the current
+  `d_w1/d_b1 + w1/b1` update kernel as a standalone graph-node removal. It
+  removed one captured node and passed correctness, but the full gate produced
+  zero focused improvements and four focused regressions.
 - Do not retry exact by-parameter variants of the current four-parameter SGD
   update as standalone launchers. The isolated update improved locally, but the
   captured training row did not improve and the focused gate regressed badly.
