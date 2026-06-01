@@ -260,6 +260,10 @@ the diff can be understood and reverted.
   `matmul_bias` or `matmul_bias_relu` kernels as a standalone fused-mm or
   training-forward edit. Local CUDA-event timing was exact but slower for both
   `128x256x128` ReLU and `128x128x64` bias-only forward kernels.
+- Do not retry blanket PyCUDA `SourceModule(..., options=["-O3"])` compile
+  options as a standalone focused-kernel optimization. Local probes found the
+  exact input-gradient/update kernel only `1.002x` faster and the generic
+  `128x256x128` fused-mm ReLU kernel slower than PyCUDA's default compile.
 - Build on the kept `2cc6e24` result only with care: `float2` vectorization is
   useful for the exact same-shape fusion-chain launchers, but the earlier
   `float4` route failed the full focused gate. Any future vector-width change
