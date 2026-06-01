@@ -305,6 +305,10 @@ the diff can be understood and reverted.
   fusion-chain launchers as a standalone Python-overhead edit. A local chain3
   probe looked mildly positive, but the full focused gate failed with score
   `-46.247240` and no durable fusion-chain target-row win.
+- Do not retry a broad fast Tensor factory/result-wrapper path for matmul or
+  fused-mm launchers as a standalone Python-overhead edit. A local in-memory
+  probe was flat for `matmul256` and `matmul512`, only `1.003x` faster for
+  exact 256 fused-mm, and slower for exact 128 fused-mm (`0.891x`).
 - Do not route exact zero-bias `256x512x256` fused-mm back to cuBLAS SGEMM plus
   a separate ReLU launch. A paired local probe found the kept native cuBLASLt
   ReLU epilogue at `0.021350ms` versus `0.049800ms` for cuBLAS+ReLU.
