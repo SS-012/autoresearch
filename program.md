@@ -197,6 +197,10 @@ the diff can be understood and reverted.
   output-backward, split exact output/hidden-gradient kernels, restrict or
   launch-bounds hints on that kernel, exact no-bounds captured first-layer
   matmul+bias+ReLU, or exact no-bounds captured output matmul+bias.
+- Build on the kept captured input-gradient update schedule: fusing `d_w1/d_b1`
+  production with the `w1/b1` update qualified and moved the train row to about
+  `0.0322ms`. Future train-step plans should fuse update work where gradients
+  are produced while still returning API-visible gradient buffers.
 - Do not retry exact by-parameter variants of the current four-parameter SGD
   update as standalone launchers. The isolated update improved locally, but the
   captured training row did not improve and the focused gate regressed badly.
