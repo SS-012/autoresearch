@@ -354,6 +354,10 @@ the diff can be understood and reverted.
   `c4f604f` passed correctness, but had no fused-mm target win, improved only
   unrelated `fusion_chain5`, regressed `matmul_64x64_x_64x64` to `1.066667x`
   baseline time, and was reverted in `82843ce`.
+- Do not retry `CUBLASLT_MATMUL_DESC_FAST_ACCUM` on the exact `256x512x256`
+  cuBLASLt ReLU epilogue as a standalone descriptor hint. It passed the loose
+  focused correctness test, but direct timing slowed to about `0.0258ms`
+  versus the current `0.0172ms` focused baseline.
 - Do not route exact `512x512x512` square matmul back to generic cuBLAS as a
   standalone change. A paired local probe found the kept native cuBLASLt plan
   modestly faster, `0.038200ms` versus `0.040200ms`.
@@ -442,6 +446,10 @@ the diff can be understood and reverted.
   was correct and about `1.061x` faster, but confirmation failed with zero
   focused improvements, seven focused regressions, and `fusion_chain3` at
   `1.189504x` baseline time.
+- Do not retry approximate reciprocal or `__frcp_rn` substitution for the exact
+  chain5 sigmoid as a standalone edit. Inline `rcp.approx.ftz.f32` was accurate
+  on the sampled distribution, but its first `1.039x` host-shaped win vanished
+  on repeat, and `__frcp_rn` was flat or slower.
 - Do not retry tanh-based sigmoid substitution for the exact chain5 `float2`
   fusion kernel as a standalone edit. The local probe was accurate but below
   threshold: current median `0.013584ms`, candidate median `0.013328ms`, or
