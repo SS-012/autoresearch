@@ -349,6 +349,11 @@ the diff can be understood and reverted.
 - Do not route exact zero-bias `256x512x256` fused-mm back to cuBLAS SGEMM plus
   a separate ReLU launch. A paired local probe found the kept native cuBLASLt
   ReLU epilogue at `0.021350ms` versus `0.049800ms` for cuBLAS+ReLU.
+- Do not retry static `SM_COUNT_TARGET=32` for the exact `256x512x256`
+  cuBLASLt ReLU epilogue as a standalone descriptor hint. Experiment
+  `c4f604f` passed correctness, but had no fused-mm target win, improved only
+  unrelated `fusion_chain5`, regressed `matmul_64x64_x_64x64` to `1.066667x`
+  baseline time, and was reverted in `82843ce`.
 - Do not route exact `512x512x512` square matmul back to generic cuBLAS as a
   standalone change. A paired local probe found the kept native cuBLASLt plan
   modestly faster, `0.038200ms` versus `0.040200ms`.
@@ -362,6 +367,9 @@ the diff can be understood and reverted.
 - Do not retry exact `float2` fusion-chain FMA/block-size tweaks without a
   much larger repeatable local margin; repeated event probes did not preserve
   the apparent chain5 win.
+- Do not retry ternary-ReLU substitution for the exact `float2` fusion-chain
+  kernels as a standalone edit. Local host-shaped timing did not hold:
+  chain3's apparent win collapsed on reverse ordering, and chain5 was slower.
 - Do not retry `__fdividef` or block-size retuning for the exact `float2`
   fusion-chain5 sigmoid launcher as standalone edits. A local variant search
   found up to `1.040x` component speedup and the primary gate improved
