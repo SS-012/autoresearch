@@ -278,6 +278,11 @@ the diff can be understood and reverted.
   fusion-chain kernels as a standalone edit. A local native probe improved
   chain3 by `1.150x` and chain5 by `1.202x`, but the full focused gate failed
   with seven focused regressions and fused-mm256 at `1.717514x` baseline time.
+- Do not retry PyCUDA function/scalar/grid prebinding for the exact `float2`
+  fusion-chain kernels as a standalone wrapper-cache edit. The local probe
+  looked positive, but the full 3-repeat gate found zero focused improvements,
+  eight focused regressions, and `fusion_chain5_n1000000` at `1.155914x`
+  baseline time.
 - Do not route exact zero-bias `256x512x256` fused-mm back to cuBLAS SGEMM plus
   a separate ReLU launch. A paired local probe found the kept native cuBLASLt
   ReLU epilogue at `0.021350ms` versus `0.049800ms` for cuBLAS+ReLU.
