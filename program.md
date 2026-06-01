@@ -205,6 +205,10 @@ the diff can be understood and reverted.
   input-gradient/update kernel. The `32x8` and `64x4` probe improved component
   CUDA-event timing, but the `32x8` candidate failed confirmation and did not
   preserve a durable train-row win.
+- Do not retry standalone alias-hint or unroll-depth retuning for the exact
+  input-gradient/update kernel. Local CUDA-event probes found `__restrict__`
+  slower than the current kernel, and `unroll8`, `unroll4`, no-unroll, and
+  mixed-unroll variants did not beat the current full-unroll schedule.
 - Do not retry standalone block-geometry retuning of the current exact
   output-backward/ReLU kernel. The `8x32` candidate improved component timing
   and qualified once, but confirmation failed with focused regressions and
