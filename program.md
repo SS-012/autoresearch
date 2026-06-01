@@ -293,6 +293,10 @@ the diff can be understood and reverted.
   gate improved the target rows, but confirmation failed with score
   `-144.331923`, two focused regressions, and `matmul_256x256_x_256x256` at
   `1.153392x` baseline time.
+- Do not retry fast `Tensor.__new__` result construction for the exact
+  fusion-chain launchers as a standalone Python-overhead edit. A local chain3
+  probe looked mildly positive, but the full focused gate failed with score
+  `-46.247240` and no durable fusion-chain target-row win.
 - Do not route exact zero-bias `256x512x256` fused-mm back to cuBLAS SGEMM plus
   a separate ReLU launch. A paired local probe found the kept native cuBLASLt
   ReLU epilogue at `0.021350ms` versus `0.049800ms` for cuBLAS+ReLU.
