@@ -225,6 +225,10 @@ the diff can be understood and reverted.
   `d_w1/d_b1 + w1/b1` update kernel as a standalone graph-node removal. It
   removed one captured node and passed correctness, but the full gate produced
   zero focused improvements and four focused regressions.
+- Do not retry standalone exact-static `128x256x128` fused
+  matmul+bias+ReLU specialization, even with bounds and nonzero bias support.
+  It improved `fused_mm_linear_128_256_128`, but the focused gate failed with
+  four focused regressions.
 - Do not retry exact by-parameter variants of the current four-parameter SGD
   update as standalone launchers. The isolated update improved locally, but the
   captured training row did not improve and the focused gate regressed badly.
