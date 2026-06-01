@@ -217,6 +217,10 @@ the diff can be understood and reverted.
 - Do not retry launch-grid shaving on that exact `w2/b2` update tail. The
   single-grid variant improved local event timing, but the full focused gate
   produced zero focused improvements and two focused regressions.
+- Do not retry cross-stream overlap of the current exact captured `w1/b1` and
+  `w2/b2` update kernels as a standalone schedule edit. A local replay probe
+  improved, but confirmation failed with zero focused improvements and four
+  focused regressions.
 - Do not retry exact by-parameter variants of the current four-parameter SGD
   update as standalone launchers. The isolated update improved locally, but the
   captured training row did not improve and the focused gate regressed badly.
