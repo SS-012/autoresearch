@@ -209,6 +209,10 @@ the diff can be understood and reverted.
   input-gradient/update kernel. Local CUDA-event probes found `__restrict__`
   slower than the current kernel, and `unroll8`, `unroll4`, no-unroll, and
   mixed-unroll variants did not beat the current full-unroll schedule.
+- Do not retry explicit `fmaf` accumulation inside the exact
+  input-gradient/update kernel as a standalone edit. A local CUDA-event probe
+  found bitwise-identical results but only a `1.010x` median component speedup
+  with overlapping timing ranges, far below the promotion margin.
 - Do not retry standalone block-geometry retuning of the current exact
   output-backward/ReLU kernel. The `8x32` candidate improved component timing
   and qualified once, but confirmation failed with focused regressions and
