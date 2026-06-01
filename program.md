@@ -213,6 +213,9 @@ the diff can be understood and reverted.
   input-gradient/update kernel as a standalone edit. A local CUDA-event probe
   found bitwise-identical results but only a `1.010x` median component speedup
   with overlapping timing ranges, far below the promotion margin.
+- Do not retry explicit `__ldg` read-only loads inside the exact
+  input-gradient/update kernel as a standalone edit. A local CUDA-event probe
+  was bitwise-identical but median timing was unchanged at `0.013984ms`.
 - Do not retry standalone block-geometry retuning of the current exact
   output-backward/ReLU kernel. The `8x32` candidate improved component timing
   and qualified once, but confirmation failed with focused regressions and
