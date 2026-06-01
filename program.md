@@ -279,6 +279,11 @@ the diff can be understood and reverted.
   `256x512x256` fused-mm (`0.016800ms` current and cached) and slower for
   exact `512x512x512` square GEMM (`0.020050ms` current versus `0.021100ms`
   cached).
+- Do not retry raw integer device-pointer passing for the native cuBLASLt
+  fused-mm ReLU epilogue as a standalone `ctypes` wrapper-overhead edit. A
+  local probe made the intended exact `256x512x256` row look `1.061x` faster,
+  but the full focused gate failed with five focused regressions and no durable
+  target-row win.
 - Do not retry cached `cublasSetStream` calls for the plain cuBLAS square-matmul
   path as a standalone host-overhead edit. Local probes were noisy and below the
   benchmark threshold: `matmul256` ranged from slower to only `1.019x` faster,
