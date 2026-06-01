@@ -281,6 +281,11 @@ the diff can be understood and reverted.
   no-change-control focused comparisons with three regressions. Vectorizing
   four adjacent output-gradient columns made the train row itself regress by
   `1.165x`.
+- Do not retry collapsing the exact captured output-backward/ReLU kernel from
+  its two-z-slice grid into a one-grid schedule, with or without explicit
+  `fmaf`, as a standalone training-lane edit. Local CUDA-event timing improved
+  by up to `1.049x`, but the full 3-repeat focused gate failed with five
+  focused regressions and no counted training-row win.
 - Do not retry a 2x2 register-tiled exact64 matmul block as a standalone
   replacement for the kept exact64 kernel. A CUDA-event probe looked mildly
   faster, but the full focused gate regressed `matmul_64x64_x_64x64` to
