@@ -1,27 +1,63 @@
 # NovaX Autoresearch Program
 
-This autoresearch run is for optimizing NovaX itself, not the original
-nanochat `train.py` experiment. The goal is to make NovaX's differentiated GPU
-execution path blazingly fast: lazy graph fusion, static-shape graph
-capture/replay, square/specialized matmul, and fused matmul epilogues. Broad
-benchmark coverage still runs as a guardrail, but the primary score is now the
-focused edge where NovaX can structurally beat PyTorch.
+This autoresearch run is for NovaX itself, not the original nanochat
+`train.py` experiment. The immediate goal has shifted from finding another
+micro-optimization to hardening NovaX's narrow static-shape training lane into a
+credible, reproducible ML systems benchmark.
+
+The current lane is deliberately narrow:
+
+- two-layer MLP,
+- ReLU activation,
+- MSE loss,
+- GPU-resident backward,
+- fused SGD update,
+- full static train step.
+
+Do not widen the claim until this lane is bulletproof. Speedups are only useful
+when they survive correctness checks, stronger PyTorch baselines, and shape
+variation.
 
 ## Objective
 
-Optimize the NovaX library so that the focused differentiated-path GPU
-benchmarks improve over the current best NovaX baseline and, over time, NovaX's
-edge cases become dramatically faster than PyTorch.
+Harden and then optimize NovaX's static MLP training lane. The primary evidence
+artifact is now `benchmarks/training_lane_benchmark.py` plus `BENCHMARKS.md`.
 
-The focused benchmark scope is:
+Phase order:
 
-- `matmul` cases, especially small/medium square shapes where NovaX can avoid
-  excess eager overhead or use a narrow fast path.
-- `fusion` cases, where lazy expression graphs collapse multiple PyTorch eager
+1. Lock correctness against PyTorch for the same inputs, targets, weights,
+   dtype, loss, gradients, and SGD updates. Test 1, 10, 100, and 1000 steps and
+   report max absolute and relative differences for loss, gradients, and final
+   weights.
+2. Build a fair PyTorch baseline ladder: eager, eager with foreach/optimized
+   SGD when available, `torch.compile`, `torch.compile(mode="reduce-overhead")`,
+   and PyTorch CUDA Graph full-step replay when feasible.
+3. Improve benchmark rigor. Every run should log hardware, CUDA version,
+   PyTorch version, NovaX commit, batch size, hidden size, dtype, warmup steps,
+   measured steps, mean/median/p95 step time, samples/sec, peak VRAM when
+   available, and launch count when available.
+4. Sweep static shapes for the same model:
+   batches `32, 128, 512, 2048`; input dims `64, 256, 1024`; hidden dims
+   `128, 512, 2048`; output dims `1, 10, 100`; also keep the canonical
+   optimized shape `(128, 256, 128, 64)` visible.
+5. Keep regression tracking stable: focused geomean, per-case regressions, and
+   no accepted speed wins that break correctness or worsen too many focused
+   cases.
+6. Keep `BENCHMARKS.md` current with the exact claim, benchmark scope,
+   environment, correctness results, PyTorch ladder, NovaX results, known
+   limitations, and reproduction command.
+7. Only after this lane is defensible, widen in this order: deeper MLPs,
+   cross-entropy, SGD momentum, AdamW, transformer feedforward block, small real
+   model benchmark.
+
+The older focused benchmark scope still matters as a guardrail:
+
+- `matmul` cases where NovaX can avoid excess eager overhead or use a narrow
+  fast path.
+- `fusion` cases where lazy expression graphs collapse multiple PyTorch eager
   launches into one NovaX kernel.
 - `fused_mm` cases, especially matmul + bias + activation epilogues.
-- `training_lane` cases, where a static captured forward/backward/optimizer
-  step can beat PyTorch eager training by keeping the whole step GPU-resident.
+- `training_lane` cases, especially captured full-step training.
 - `inference_capture_*` cases, where static repeated work can replay through
   CUDA graphs.
 
@@ -55,15 +91,16 @@ Read these before starting:
 - `novax/ops/gpu/*.py`
 - `tests/*.py`
 - `benchmarks/novax_gpu_benchmark.py`
+- `benchmarks/training_lane_benchmark.py`
+- `BENCHMARKS.md`
 
 You may modify files under `novax/` and add focused tests under `tests/`.
-You may update docs only when behavior changes. Do not edit
-`benchmarks/novax_gpu_benchmark.py` during an experiment unless the human
-explicitly asks for benchmark changes.
+You may update docs when behavior or benchmark claims change. The human has
+explicitly authorized benchmark changes for the training-lane hardening work.
 
 ## Metric
 
-The benchmark runner is:
+The legacy autoresearch runner is still:
 
 ```bash
 python benchmarks/novax_gpu_benchmark.py --profile research
@@ -107,6 +144,22 @@ reported separately as `overall_geomean_novax_vs_pytorch`,
 `overall_pytorch_wins`, `overall_pytorch_ties`, and `overall_pytorch_losses`.
 Use the overall metrics as guardrail context, not as the primary optimization
 target.
+
+The training-lane rigor runner is:
+
+```bash
+python benchmarks/training_lane_benchmark.py --profile sweep --warmup 50 --measured 200 --write-json benchmarks/training_lane_results.json --write-markdown BENCHMARKS.md
+```
+
+For local smoke validation, use:
+
+```bash
+python benchmarks/training_lane_benchmark.py --profile quick --warmup 3 --measured 5 --baselines novax_captured pytorch_eager pytorch_foreach_sgd --correctness-steps 1 10
+```
+
+Treat `torch.compile` and PyTorch CUDA Graph failures as data, not as permission
+to hide rows. If they fail on the local stack, keep the error in the JSON and
+Markdown report.
 
 ## Setup
 
