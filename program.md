@@ -403,6 +403,12 @@ stable no-change baseline with the same median gate, then compare the candidate
 against that stable artifact. Do not lower the bar silently; record which
 baseline was used in `results.tsv`.
 
+Current local best baseline was refreshed on June 1 from a no-change 3-repeat
+median gate (`last_nochange_continuation_jun01.json`): 36 ok, 0 errors, all 12
+focused rows faster than PyTorch, focused geomean `0.435760`, score
+`50.005335`, one focused improvement, zero focused regressions. Treat this as a
+same-code control snapshot, not a source improvement.
+
 On Windows PowerShell, extract the key lines with:
 
 ```powershell
