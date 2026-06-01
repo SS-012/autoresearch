@@ -418,6 +418,16 @@ the diff can be understood and reverted.
   the exact captured output-backward/ReLU kernel as a standalone edit. A fair
   raw-kernel alternating probe was exact but flat/slower: current
   `0.019808ms` versus candidate `0.019920ms`.
+- Do not retry splitting the `b2` update into the output-backward kernel plus a
+  `w2`-only tail. It avoided the `w2` race correctly, but raw pair timing was
+  slower: current `0.024752ms` versus candidate `0.025248ms`.
+- Do not retry half-warp broadcasting of duplicated `h[m,row]` loads in the
+  `d_w2` half of the exact output-backward/ReLU kernel as a standalone edit.
+  It was exact but only `1.003x` faster in the component probe.
+- Do not retry `float2` hidden-gradient vector loads in the exact
+  output-backward/ReLU kernel as a standalone edit. Experiment `eb42ae8`
+  improved `step_many8` by `1.047x`, but failed the 3-repeat gate with eight
+  focused regressions and was reverted in `31b3b06`.
 - Do not retry warp-shuffle broadcasting of `x[m,row]` or `d_z1[m,col]` loads
   inside the exact captured input-gradient/update kernel as standalone
   memory-traffic cleanup. Fixed-GPU hot-path probes were bitwise-identical but
