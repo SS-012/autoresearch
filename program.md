@@ -278,6 +278,9 @@ the diff can be understood and reverted.
   fusion-chain kernels as a standalone edit. A local native probe improved
   chain3 by `1.150x` and chain5 by `1.202x`, but the full focused gate failed
   with seven focused regressions and fused-mm256 at `1.717514x` baseline time.
+- Do not route exact zero-bias `256x512x256` fused-mm back to cuBLAS SGEMM plus
+  a separate ReLU launch. A paired local probe found the kept native cuBLASLt
+  ReLU epilogue at `0.021350ms` versus `0.049800ms` for cuBLAS+ReLU.
 - Build on the kept `2cc6e24` result only with care: `float2` vectorization is
   useful for the exact same-shape fusion-chain launchers, but the earlier
   `float4` route failed the full focused gate. Any future vector-width change
