@@ -357,6 +357,11 @@ the diff can be understood and reverted.
   `fmaf`, as a standalone training-lane edit. Local CUDA-event timing improved
   by up to `1.049x`, but the full 3-repeat focused gate failed with five
   focused regressions and no counted training-row win.
+- Do not retry row-0 `d_b2`/loss loop folding or warp-shuffle loss-atomic
+  reduction inside the exact captured output-backward/ReLU kernel as a
+  standalone edit. The combined local component probe was correct and only
+  `1.034x` faster, and the full focused gate failed with five focused
+  regressions led by `fusion_chain3`.
 - Do not retry a 2x2 register-tiled exact64 matmul block as a standalone
   replacement for the kept exact64 kernel. A CUDA-event probe looked mildly
   faster, but the full focused gate regressed `matmul_64x64_x_64x64` to
