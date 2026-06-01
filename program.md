@@ -293,6 +293,11 @@ the diff can be understood and reverted.
   for exact 128x64 bias-only), but the 3-repeat focused gate failed with score
   `-693.210403`, four focused regressions, and `fusion_chain5_n1000000` at
   `1.202156x` baseline time.
+- Do not retry generic fused-matmul CUDA cache-preference hints as standalone
+  edits. `PREFER_EQUAL` on `matmul_bias` and `matmul_bias_relu` technically
+  qualified twice, but the counted wins were unrelated fusion-chain drift, the
+  intended fused-mm rows were flat, and non-focused MLP forward regressed up to
+  `1.247117x` baseline time.
 - Do not retry cache-first `_get_stream()` lookup as a standalone
   host-overhead edit. An alternating local probe was below threshold on focused
   rows: chain3 `1.003x`, chain5 `1.005x`, fused-mm128 `1.023x`, and matmul256
