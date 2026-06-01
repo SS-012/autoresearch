@@ -253,6 +253,10 @@ the diff can be understood and reverted.
 - Do not retry vectorizing the current segmented four-parameter SGD update as
   a standalone edit. It improved isolated CUDA-event timing but did not improve
   the captured training benchmark and failed the focused gate.
+- Do not retry explicit inner-loop `#pragma unroll` on the generic 16x16
+  `matmul_bias` or `matmul_bias_relu` kernels as a standalone fused-mm or
+  training-forward edit. Local CUDA-event timing was exact but slower for both
+  `128x256x128` ReLU and `128x128x64` bias-only forward kernels.
 - Build on the kept `2cc6e24` result only with care: `float2` vectorization is
   useful for the exact same-shape fusion-chain launchers, but the earlier
   `float4` route failed the full focused gate. Any future vector-width change
