@@ -259,6 +259,11 @@ the diff can be understood and reverted.
 - Do not retry exact `float2` fusion-chain FMA/block-size tweaks without a
   much larger repeatable local margin; repeated event probes did not preserve
   the apparent chain5 win.
+- Do not retry `__fdividef` or block-size retuning for the exact `float2`
+  fusion-chain5 sigmoid launcher as standalone edits. A local variant search
+  found up to `1.040x` component speedup and the primary gate improved
+  `fusion_chain5_n1000000` by `1.083x`, but confirmation failed with captured
+  inference at `1.271x` baseline time.
 - Do not retry PyCUDA runtime cache-preference hints for the exact `float2`
   fusion-chain kernels as standalone edits. `PREFER_L1` looked slightly faster
   for chain3 in a local event probe, but the full 3-run gate for `1343147`
