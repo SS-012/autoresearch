@@ -177,6 +177,10 @@ the diff can be understood and reverted.
   nodes, memory traffic, or vendor-library work. Avoid isolated per-thread
   coarsening or local arithmetic rewrites unless a microprobe and full median
   gate both show a durable target win.
+- Treat exact output-backward/ReLU fusion as proven locally but not keepable as
+  a standalone launcher under the current coupled focused gate. Revisit it only
+  as part of a shape-keyed whole-step workspace, generated train-step plan, or
+  explicitly training-isolated scoring mode.
 
 Avoid unfocused tweaks to isolated eager elementwise, activation, or reduction
 kernels unless they are required by the focused path or remove a severe
