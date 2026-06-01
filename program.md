@@ -279,6 +279,14 @@ the diff can be understood and reverted.
   `256x512x256` fused-mm (`0.016800ms` current and cached) and slower for
   exact `512x512x512` square GEMM (`0.020050ms` current versus `0.021100ms`
   cached).
+- Do not retry cached `cublasSetStream` calls for the plain cuBLAS square-matmul
+  path as a standalone host-overhead edit. Local probes were noisy and below the
+  benchmark threshold: `matmul256` ranged from slower to only `1.019x` faster,
+  while `matmul1024` was flat to `1.013x`.
+- Do not force the focused square cuBLAS matmul path from TF32 tensor-op math
+  back to default FP32 math as a speed optimization. The local probe slowed
+  `matmul256` from `0.016000ms` to `0.019150ms` and `matmul1024` from
+  `0.062100ms` to `0.095900ms`.
 - Do not retry native DLL launch relocation for the exact `float2`
   fusion-chain kernels as a standalone edit. A local native probe improved
   chain3 by `1.150x` and chain5 by `1.202x`, but the full focused gate failed
