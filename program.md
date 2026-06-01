@@ -260,6 +260,10 @@ the diff can be understood and reverted.
   for chain3 in a local event probe, but the full 3-run gate for `1343147`
   failed with one focused improvement, three focused regressions, and no
   durable chain-row win.
+- Do not retry `__launch_bounds__` hints for the exact `float2` fusion-chain
+  kernels as standalone edits. Local CUDA-event probes found the one-argument
+  hint flat/slower for chain3 and slower for chain5; the two-argument minimum
+  block hint also hurt chain5.
 - Do not retry simple MSE inverse-scale or block-size changes as standalone
   fast-training-lane edits; isolated probes did not cleanly beat the current
   512-thread atomic-loss kernel.
