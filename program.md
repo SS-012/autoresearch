@@ -192,6 +192,11 @@ the diff can be understood and reverted.
   fresh paired-control baseline or a stable regenerated `best.json`. It
   improves the train-step row by about `1.30x`; do not reject or promote future
   train-step variants solely against an old lucky saved-best artifact.
+- Do not retry the local exact train-lane microvariants that failed event
+  probes after that keep: shared-memory `pred-target` tiling inside exact
+  output-backward, split exact output/hidden-gradient kernels, restrict or
+  launch-bounds hints on that kernel, exact no-bounds captured first-layer
+  matmul+bias+ReLU, or exact no-bounds captured output matmul+bias.
 - Do not retry exact by-parameter variants of the current four-parameter SGD
   update as standalone launchers. The isolated update improved locally, but the
   captured training row did not improve and the focused gate regressed badly.
