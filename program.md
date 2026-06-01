@@ -414,6 +414,10 @@ the diff can be understood and reverted.
   standalone edit. The combined local component probe was correct and only
   `1.034x` faster, and the full focused gate failed with five focused
   regressions led by `fusion_chain3`.
+- Do not retry early returns for the idle `z=0, blockIdx.x>=4` half-grid inside
+  the exact captured output-backward/ReLU kernel as a standalone edit. A fair
+  raw-kernel alternating probe was exact but flat/slower: current
+  `0.019808ms` versus candidate `0.019920ms`.
 - Do not retry warp-shuffle broadcasting of `x[m,row]` or `d_z1[m,col]` loads
   inside the exact captured input-gradient/update kernel as standalone
   memory-traffic cleanup. Fixed-GPU hot-path probes were bitwise-identical but
