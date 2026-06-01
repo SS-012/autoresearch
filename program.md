@@ -258,6 +258,12 @@ the diff can be understood and reverted.
   output-backward/ReLU training kernel as a replacement for the current memset
   plus per-column atomic loss accumulation. A local probe was correct but much
   slower, about `0.092ms` versus `0.0215ms`.
+- Do not retry standalone `float4` vector loads in either half of the exact
+  captured output-backward/ReLU kernel. Vectorizing the hidden-gradient loads
+  improved the train row by `1.09x`, but failed both the saved-best and
+  no-change-control focused comparisons with three regressions. Vectorizing
+  four adjacent output-gradient columns made the train row itself regress by
+  `1.165x`.
 - Nsight Compute is installed, but local `ncu` profiling currently fails with
   `ERR_NVGPUCTRPERM`, so do not base decisions on unavailable hardware-counter
   evidence. Use CUDA-event component probes and the full focused gate unless
