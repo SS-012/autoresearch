@@ -270,6 +270,12 @@ the diff can be understood and reverted.
   full gate improved `fused_mm_linear_128_256_128`, but the 3-repeat focused
   gate still failed with three focused regressions and `fusion_chain3` at
   `1.154891x` baseline time.
+- Do not retry generic `matmul_bias` or `matmul_bias_relu` `__restrict__`
+  pointer qualifiers as standalone fused-mm/training-forward edits. Local
+  CUDA-event probes looked strong (`1.060x` for exact 128 ReLU and `1.328x`
+  for exact 128x64 bias-only), but the 3-repeat focused gate failed with score
+  `-693.210403`, four focused regressions, and `fusion_chain5_n1000000` at
+  `1.202156x` baseline time.
 - Do not retry cache-first `_get_stream()` lookup as a standalone
   host-overhead edit. An alternating local probe was below threshold on focused
   rows: chain3 `1.003x`, chain5 `1.005x`, fused-mm128 `1.023x`, and matmul256
