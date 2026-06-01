@@ -393,6 +393,10 @@ the diff can be understood and reverted.
   was correct and about `1.061x` faster, but confirmation failed with zero
   focused improvements, seven focused regressions, and `fusion_chain3` at
   `1.189504x` baseline time.
+- Do not retry tanh-based sigmoid substitution for the exact chain5 `float2`
+  fusion kernel as a standalone edit. The local probe was accurate but below
+  threshold: current median `0.013584ms`, candidate median `0.013328ms`, or
+  only `1.019208x`.
 - Nsight Compute is installed, but local `ncu` profiling currently fails with
   `ERR_NVGPUCTRPERM`, so do not base decisions on unavailable hardware-counter
   evidence. Use CUDA-event component probes and the full focused gate unless
