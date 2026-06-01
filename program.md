@@ -251,6 +251,11 @@ the diff can be understood and reverted.
 - Do not retry exact `float2` fusion-chain FMA/block-size tweaks without a
   much larger repeatable local margin; repeated event probes did not preserve
   the apparent chain5 win.
+- Do not retry PyCUDA runtime cache-preference hints for the exact `float2`
+  fusion-chain kernels as standalone edits. `PREFER_L1` looked slightly faster
+  for chain3 in a local event probe, but the full 3-run gate for `1343147`
+  failed with one focused improvement, three focused regressions, and no
+  durable chain-row win.
 - Do not retry simple MSE inverse-scale or block-size changes as standalone
   fast-training-lane edits; isolated probes did not cleanly beat the current
   512-thread atomic-loss kernel.
