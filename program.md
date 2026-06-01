@@ -184,6 +184,10 @@ the diff can be understood and reverted.
 - Do not retry exact by-parameter variants of the current four-parameter SGD
   update as standalone launchers. The isolated update improved locally, but the
   captured training row did not improve and the focused gate regressed badly.
+- Build on the kept `2cc6e24` result only with care: `float2` vectorization is
+  useful for the exact same-shape fusion-chain launchers, but the earlier
+  `float4` route failed the full focused gate. Any future vector-width change
+  needs a direct event probe and a 3-run median benchmark gate.
 
 Avoid unfocused tweaks to isolated eager elementwise, activation, or reduction
 kernels unless they are required by the focused path or remove a severe
@@ -306,6 +310,9 @@ The current codebase likely has wins available in these areas:
 - Improve memory lifecycle around temporary outputs so repeated benchmark loops
   reuse buffers instead of allocating fresh buffers.
 - Benchmark matmul tile choices beyond 16x16 if the device supports them.
+- For the focused fusion-chain kernels, explore only narrow, shape-guarded
+  follow-ups that preserve the current `float2` fast path and do not broaden
+  dispatch matching.
 
 Keep moving. The loop is autonomous: propose, implement, test, benchmark, keep
 or discard, then continue.
