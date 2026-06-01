@@ -370,6 +370,16 @@ the diff can be understood and reverted.
   replacement for the kept exact64 kernel. A CUDA-event probe looked mildly
   faster, but the full focused gate regressed `matmul_64x64_x_64x64` to
   `1.237705x` saved-baseline time.
+- Do not retry a one-warp-per-16x16 TF32 WMMA kernel for exact
+  `64x64 @ 64x64` matmul under the current FP32 correctness contract. The local
+  probe failed the decimal-3 test tolerance with `0.0227509` max absolute drift
+  and was slightly slower than the kept exact kernel (`0.014656ms` versus
+  `0.014418ms`).
+- Do not retry scalar or `float2` `exp2f` substitution for the exact chain5
+  sigmoid fusion kernel as a standalone edit. A benchmark-shaped local probe
+  was correct and about `1.061x` faster, but confirmation failed with zero
+  focused improvements, seven focused regressions, and `fusion_chain3` at
+  `1.189504x` baseline time.
 - Nsight Compute is installed, but local `ncu` profiling currently fails with
   `ERR_NVGPUCTRPERM`, so do not base decisions on unavailable hardware-counter
   evidence. Use CUDA-event component probes and the full focused gate unless
