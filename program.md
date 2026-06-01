@@ -190,6 +190,13 @@ the diff can be understood and reverted.
   gate measured `0.025537ms` per NovaX step versus `0.445581ms` for PyTorch,
   a `0.057x` ratio. The row has been merged into the local ignored
   `autoresearch/best.json` baseline while preserving older saved-best rows.
+- Do not retry intermediate `step_many` loss/gradient output elision as a
+  standalone source edit. It improved the new `step_many8` row from
+  `0.025544ms` to `0.023244ms` per step against a no-change control and
+  repeated around `0.023ms`, but both 3-repeat gates failed due unrelated
+  focused regressions. Revisit only as part of a generated whole-step planner
+  or a training-isolated score that can separate true train-lane gains from
+  coupled-suite noise.
 - Treat exact output-backward/ReLU fusion as proven locally but not keepable as
   a standalone launcher under the current coupled focused gate. Revisit it only
   as part of a shape-keyed whole-step workspace, generated train-step plan, or
