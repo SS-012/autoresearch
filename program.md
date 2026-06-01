@@ -181,6 +181,9 @@ the diff can be understood and reverted.
   a standalone launcher under the current coupled focused gate. Revisit it only
   as part of a shape-keyed whole-step workspace, generated train-step plan, or
   explicitly training-isolated scoring mode.
+- Do not retry exact by-parameter variants of the current four-parameter SGD
+  update as standalone launchers. The isolated update improved locally, but the
+  captured training row did not improve and the focused gate regressed badly.
 
 Avoid unfocused tweaks to isolated eager elementwise, activation, or reduction
 kernels unless they are required by the focused path or remove a severe
