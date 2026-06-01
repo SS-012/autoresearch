@@ -274,6 +274,10 @@ the diff can be understood and reverted.
   host-overhead edit. An alternating local probe was below threshold on focused
   rows: chain3 `1.003x`, chain5 `1.005x`, fused-mm128 `1.023x`, and matmul256
   flat.
+- Do not retry native DLL launch relocation for the exact `float2`
+  fusion-chain kernels as a standalone edit. A local native probe improved
+  chain3 by `1.150x` and chain5 by `1.202x`, but the full focused gate failed
+  with seven focused regressions and fused-mm256 at `1.717514x` baseline time.
 - Build on the kept `2cc6e24` result only with care: `float2` vectorization is
   useful for the exact same-shape fusion-chain launchers, but the earlier
   `float4` route failed the full focused gate. Any future vector-width change
