@@ -281,6 +281,9 @@ the diff can be understood and reverted.
 - Do not route exact zero-bias `256x512x256` fused-mm back to cuBLAS SGEMM plus
   a separate ReLU launch. A paired local probe found the kept native cuBLASLt
   ReLU epilogue at `0.021350ms` versus `0.049800ms` for cuBLAS+ReLU.
+- Do not route exact `512x512x512` square matmul back to generic cuBLAS as a
+  standalone change. A paired local probe found the kept native cuBLASLt plan
+  modestly faster, `0.038200ms` versus `0.040200ms`.
 - Build on the kept `2cc6e24` result only with care: `float2` vectorization is
   useful for the exact same-shape fusion-chain launchers, but the earlier
   `float4` route failed the full focused gate. Any future vector-width change
