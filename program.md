@@ -274,6 +274,11 @@ the diff can be understood and reverted.
   host-overhead edit. An alternating local probe was below threshold on focused
   rows: chain3 `1.003x`, chain5 `1.005x`, fused-mm128 `1.023x`, and matmul256
   flat.
+- Do not retry cached ctypes stream pointers for native cuBLASLt calls as a
+  standalone wrapper-overhead edit. A local probe was flat for exact
+  `256x512x256` fused-mm (`0.016800ms` current and cached) and slower for
+  exact `512x512x512` square GEMM (`0.020050ms` current versus `0.021100ms`
+  cached).
 - Do not retry native DLL launch relocation for the exact `float2`
   fusion-chain kernels as a standalone edit. A local native probe improved
   chain3 by `1.150x` and chain5 by `1.202x`, but the full focused gate failed
