@@ -264,6 +264,12 @@ the diff can be understood and reverted.
   options as a standalone focused-kernel optimization. Local probes found the
   exact input-gradient/update kernel only `1.002x` faster and the generic
   `128x256x128` fused-mm ReLU kernel slower than PyCUDA's default compile.
+- Do not retry module-level caching of generic `matmul_bias` and
+  `matmul_bias_relu` PyCUDA function handles as a standalone source-string or
+  wrapper-overhead edit. The direct local probe improved by `1.063x` and the
+  full gate improved `fused_mm_linear_128_256_128`, but the 3-repeat focused
+  gate still failed with three focused regressions and `fusion_chain3` at
+  `1.154891x` baseline time.
 - Build on the kept `2cc6e24` result only with care: `float2` vectorization is
   useful for the exact same-shape fusion-chain launchers, but the earlier
   `float4` route failed the full focused gate. Any future vector-width change
@@ -393,13 +399,17 @@ or on bash-like shells:
 cp autoresearch/last.json autoresearch/best.json
 ```
 
-For a discard, reset only the experiment commit you just created, after checking
-that there are no unrelated uncommitted user changes:
+For a discard, create a normal revert commit for the experiment you just
+created, after checking that there are no unrelated uncommitted user changes:
 
 ```bash
 git status --short
-git reset --hard HEAD~1
+git revert --no-edit <experiment-commit>
 ```
+
+Do not rewrite visible experiment history. Push both kept changes and revert
+commits to the configured GitHub remote so the human can inspect progress from
+another machine.
 
 ## Logging
 
