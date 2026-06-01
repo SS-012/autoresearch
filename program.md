@@ -188,10 +188,10 @@ the diff can be understood and reverted.
   a standalone launcher under the current coupled focused gate. Revisit it only
   as part of a shape-keyed whole-step workspace, generated train-step plan, or
   explicitly training-isolated scoring mode.
-- Do not retry captured-only exact output-backward plus ReLU fusion as a
-  standalone training-lane plan. It improved the train-step row by about
-  `1.30x`, but confirmation and tiebreak gates failed with five to six focused
-  regressions led by `inference_capture_300_passes`.
+- Captured-only exact output-backward plus ReLU fusion is a keep only under a
+  fresh paired-control baseline or a stable regenerated `best.json`. It
+  improves the train-step row by about `1.30x`; do not reject or promote future
+  train-step variants solely against an old lucky saved-best artifact.
 - Do not retry exact by-parameter variants of the current four-parameter SGD
   update as standalone launchers. The isolated update improved locally, but the
   captured training row did not improve and the focused gate regressed badly.
