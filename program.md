@@ -365,6 +365,9 @@ the diff can be understood and reverted.
   useful for the exact same-shape fusion-chain launchers, but the earlier
   `float4` route failed the full focused gate. Any future vector-width change
   needs a direct event probe and a 3-run median benchmark gate.
+- Do not retry chain3-only `float4` vectorization as a standalone edit. A
+  randomized host-shaped alternation found it exactly flat against the current
+  `float2` path: `0.0175ms` current versus `0.0175ms` candidate.
 - Do not retry alias-hint-only edits for those exact `float2` fusion-chain
   kernels as standalone changes. Adding `__restrict__` looked slightly faster
   in an event probe but failed the full focused gate with four regressions.
