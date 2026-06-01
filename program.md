@@ -388,6 +388,10 @@ the diff can be understood and reverted.
   probe failed the decimal-3 test tolerance with `0.0227509` max absolute drift
   and was slightly slower than the kept exact kernel (`0.014656ms` versus
   `0.014418ms`).
+- Do not retry per-kernel `-maxrregcount` compiler-option tuning for the
+  exact64 matmul tile as a standalone edit. A local option-family probe was
+  exact but below threshold: current median `0.010944ms`, best
+  `-maxrregcount=64` median `0.010656ms`, or only `1.027027x`.
 - Do not retry scalar or `float2` `exp2f` substitution for the exact chain5
   sigmoid fusion kernel as a standalone edit. A benchmark-shaped local probe
   was correct and about `1.061x` faster, but confirmation failed with zero
