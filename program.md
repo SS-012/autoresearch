@@ -188,6 +188,9 @@ the diff can be understood and reverted.
 - Do not retry exact by-parameter variants of the current four-parameter SGD
   update as standalone launchers. The isolated update improved locally, but the
   captured training row did not improve and the focused gate regressed badly.
+- Do not retry vectorizing the current segmented four-parameter SGD update as
+  a standalone edit. It improved isolated CUDA-event timing but did not improve
+  the captured training benchmark and failed the focused gate.
 - Build on the kept `2cc6e24` result only with care: `float2` vectorization is
   useful for the exact same-shape fusion-chain launchers, but the earlier
   `float4` route failed the full focused gate. Any future vector-width change
